@@ -1,4 +1,4 @@
-//! Group of [`Channel`]s and [`User`]s with aditional moderation options.
+//! Group of [`Channel`]s and [`User`]s with additional moderation options.
 //!
 //! [`Guild`]s allow, for example, assigning [`Role`]s to [`Member`]s to limit
 //! their [`Permissions`] globally, or per [`Channel`].

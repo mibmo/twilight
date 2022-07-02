@@ -72,6 +72,7 @@ pub struct PresenceIntermediary {
 
 impl PresenceIntermediary {
     /// Inject guild ID into presence if not already present.
+    #[allow(clippy::missing_const_for_fn)]
     pub fn into_presence(self, guild_id: Id<GuildMarker>) -> Presence {
         Presence {
             activities: self.activities,
