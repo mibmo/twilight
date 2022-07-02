@@ -28,9 +28,7 @@ use crate::{
     user::User,
 };
 use serde::{
-    de::{
-        value::MapAccessDeserializer, DeserializeSeed, Deserializer, MapAccess, SeqAccess, Visitor,
-    },
+    de::{DeserializeSeed, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
 };
 use std::fmt::{Formatter, Result as FmtResult};
@@ -67,7 +65,6 @@ pub struct PresenceIntermediary {
     #[serde(default)]
     pub activities: Vec<Activity>,
     pub client_status: ClientStatus,
-    pub guild_id: Option<Id<GuildMarker>>,
     pub nick: Option<String>,
     pub status: Status,
     pub user: UserOrId,
@@ -79,52 +76,10 @@ impl PresenceIntermediary {
         Presence {
             activities: self.activities,
             client_status: self.client_status,
-            guild_id: self.guild_id.unwrap_or(guild_id),
+            guild_id,
             status: self.status,
             user: self.user,
         }
-    }
-}
-
-struct PresenceVisitor(Id<GuildMarker>);
-
-impl<'de> Visitor<'de> for PresenceVisitor {
-    type Value = Presence;
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("Presence struct")
-    }
-
-    fn visit_map<M: MapAccess<'de>>(self, map: M) -> Result<Self::Value, M::Error> {
-        let deser = MapAccessDeserializer::new(map);
-        let presence = PresenceIntermediary::deserialize(deser)?;
-
-        Ok(Presence {
-            activities: presence.activities,
-            client_status: presence.client_status,
-            guild_id: presence.guild_id.unwrap_or(self.0),
-            status: presence.status,
-            user: presence.user,
-        })
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PresenceDeserializer(Id<GuildMarker>);
-
-impl PresenceDeserializer {
-    /// Create a new deserializer for a presence when you know the guild ID but
-    /// the payload probably doesn't contain it.
-    pub const fn new(guild_id: Id<GuildMarker>) -> Self {
-        Self(guild_id)
-    }
-}
-
-impl<'de> DeserializeSeed<'de> for PresenceDeserializer {
-    type Value = Presence;
-
-    fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-        deserializer.deserialize_map(PresenceVisitor(self.0))
     }
 }
 
@@ -139,30 +94,30 @@ impl PresenceListDeserializer {
     }
 }
 
-struct PresenceListDeserializerVisitor(Id<GuildMarker>);
-
-impl<'de> Visitor<'de> for PresenceListDeserializerVisitor {
-    type Value = Vec<Presence>;
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("a sequence of presences")
-    }
-
-    fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
-        let mut list = seq.size_hint().map_or_else(Vec::new, Vec::with_capacity);
-
-        while let Some(presence) = seq.next_element_seed(PresenceDeserializer(self.0))? {
-            list.push(presence);
-        }
-
-        Ok(list)
-    }
-}
-
 impl<'de> DeserializeSeed<'de> for PresenceListDeserializer {
     type Value = Vec<Presence>;
 
     fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+        struct PresenceListDeserializerVisitor(Id<GuildMarker>);
+
+        impl<'de> Visitor<'de> for PresenceListDeserializerVisitor {
+            type Value = Vec<Presence>;
+
+            fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
+                f.write_str("a sequence of presences")
+            }
+
+            fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
+                let mut list = seq.size_hint().map_or_else(Vec::new, Vec::with_capacity);
+
+                while let Some(presence) = seq.next_element::<PresenceIntermediary>()? {
+                    list.push(presence.into_presence(self.0));
+                }
+
+                Ok(list)
+            }
+        }
+
         deserializer.deserialize_any(PresenceListDeserializerVisitor(self.0))
     }
 }

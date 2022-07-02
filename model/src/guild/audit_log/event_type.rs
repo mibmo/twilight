@@ -9,7 +9,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 pub enum AuditLogEventType {
     /// [Guild] was updated.
     ///
-    /// [Guild]: super::super::Guild
+    /// [Guild]: crate::guild::Guild
     GuildUpdate = 1,
     /// [Channel] was created.
     ///
@@ -40,68 +40,68 @@ pub enum AuditLogEventType {
     ChannelOverwriteDelete = 15,
     /// [Member] was kicked.
     ///
-    /// [Member]: super::super::Member
+    /// [Member]: crate::guild::Member
     MemberKick = 20,
     /// [Member] prune began.
     ///
-    /// [Member]: super::super::Member
+    /// [Member]: crate::guild::Member
     MemberPrune = 21,
     /// [Member] was banned.
     ///
-    /// [Member]: super::super::Member
+    /// [Member]: crate::guild::Member
     MemberBanAdd = 22,
     /// [Member]'s [ban] was removed.
     ///
-    /// [ban]: super::super::Ban
-    /// [Member]: super::super::Member
+    /// [ban]: crate::guild::Ban
+    /// [Member]: crate::guild::Member
     MemberBanRemove = 23,
     /// [Member] was updated.
     ///
-    /// [Member]: super::super::Member
+    /// [Member]: crate::guild::Member
     MemberUpdate = 24,
     /// [Member] either had a [role] attached or removed.
     ///
-    /// [Member]: super::super::Member
-    /// [role]: super::super::Role
+    /// [Member]: crate::guild::Member
+    /// [role]: crate::guild::Role
     MemberRoleUpdate = 25,
     /// [Member] was moved between voice [channel]s.
     ///
-    /// [Member]: super::super::Member
+    /// [Member]: crate::guild::Member
     /// [channel]: crate::channel::Channel
     MemberMove = 26,
     /// [Member] was disconnected from a voice [channel].
     ///
-    /// [Member]: super::super::Member
+    /// [Member]: crate::guild::Member
     /// [channel]: crate::channel::Channel
     MemberDisconnect = 27,
     /// [Bot user] was added to a [guild].
     ///
     /// [Bot user]: crate::user::User::bot
-    /// [guild]: super::super::Guild
+    /// [guild]: crate::guild::Guild
     BotAdd = 28,
     /// [Role] was created.
     ///
-    /// [Role]: super::super::Role
+    /// [Role]: crate::guild::Role
     RoleCreate = 30,
     /// [Role] was updated.
     ///
-    /// [Role]: super::super::Role
+    /// [Role]: crate::guild::Role
     RoleUpdate = 31,
     /// [Role] was deleted.
     ///
-    /// [Role]: super::super::Role
+    /// [Role]: crate::guild::Role
     RoleDelete = 32,
     /// [Invite] was created.
     ///
-    /// [Invite]: crate::invite::Invite
+    /// [Invite]: crate::guild::invite::Invite
     InviteCreate = 40,
     /// [Invite] was updated.
     ///
-    /// [Invite]: crate::invite::Invite
+    /// [Invite]: crate::guild::invite::Invite
     InviteUpdate = 41,
     /// [Invite] was deleted.
     ///
-    /// [Invite]: crate::invite::Invite
+    /// [Invite]: crate::guild::invite::Invite
     InviteDelete = 42,
     /// [Webhook] was created.
     ///
@@ -117,15 +117,15 @@ pub enum AuditLogEventType {
     WebhookDelete = 52,
     /// [Emoji] was created.
     ///
-    /// [Emoji]: super::super::Emoji
+    /// [Emoji]: crate::guild::Emoji
     EmojiCreate = 60,
     /// [Emoji] was updated.
     ///
-    /// [Emoji]: super::super::Emoji
+    /// [Emoji]: crate::guild::Emoji
     EmojiUpdate = 61,
     /// [Emoji] was deleted.
     ///
-    /// [Emoji]: super::super::Emoji
+    /// [Emoji]: crate::guild::Emoji
     EmojiDelete = 62,
     /// [Message] was deleted.
     ///
@@ -147,15 +147,15 @@ pub enum AuditLogEventType {
     MessageUnpin = 75,
     /// [Integration] was created.
     ///
-    /// [Integration]: super::super::GuildIntegration
+    /// [Integration]: crate::guild::GuildIntegration
     IntegrationCreate = 80,
     /// [Integration] was updated.
     ///
-    /// [Integration]: super::super::GuildIntegration
+    /// [Integration]: crate::guild::GuildIntegration
     IntegrationUpdate = 81,
     /// [Integration] was deleted.
     ///
-    /// [Integration]: super::super::GuildIntegration
+    /// [Integration]: crate::guild::GuildIntegration
     IntegrationDelete = 82,
     /// [Stage instance] was created.
     ///
@@ -183,15 +183,15 @@ pub enum AuditLogEventType {
     StickerDelete = 92,
     /// [`GuildScheduledEvent`] was created.
     ///
-    /// [`GuildScheduledEvent`]: crate::scheduled_event::GuildScheduledEvent
+    /// [`GuildScheduledEvent`]: crate::guild::scheduled_event::GuildScheduledEvent
     GuildScheduledEventCreate = 100,
     /// [`GuildScheduledEvent`] was updated.
     ///
-    /// [`GuildScheduledEvent`]: crate::scheduled_event::GuildScheduledEvent
+    /// [`GuildScheduledEvent`]: crate::guild::scheduled_event::GuildScheduledEvent
     GuildScheduledEventUpdate = 101,
     /// [`GuildScheduledEvent`] was deleted.
     ///
-    /// [`GuildScheduledEvent`]: crate::scheduled_event::GuildScheduledEvent
+    /// [`GuildScheduledEvent`]: crate::guild::scheduled_event::GuildScheduledEvent
     GuildScheduledEventDelete = 102,
     /// Thread [channel] was created.
     ///

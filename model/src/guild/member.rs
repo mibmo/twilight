@@ -1,3 +1,5 @@
+//! Mostly internal custom serde deserializers.
+
 use crate::{
     id::{
         marker::{GuildMarker, RoleMarker},
@@ -15,6 +17,9 @@ use serde::{
 };
 use std::fmt::{Formatter, Result as FmtResult};
 
+/// [`User`] that is in a [`Guild`].
+///
+/// [`Guild`]: super::Guild
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Member {
     /// Member's guild avatar.
@@ -37,13 +42,13 @@ pub struct Member {
 
 /// Version of [`Member`] but without a guild ID, useful in some contexts.
 ///
-/// The HTTP and Gateway APIs don't include guild IDs in their payloads, so this
-/// can be useful when you're unable to use a deserialization seed like
+/// The HTTP and Gateway APIs don't always include guild IDs in their payloads,
+/// so this can be useful when you're unable to use a deserialization seed like
 /// [`MemberDeserializer`].
 // Used in the guild deserializer.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename(deserialize = "Member"))]
-pub struct MemberIntermediary {
+pub(crate) struct MemberIntermediary {
     /// Member's guild avatar.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar: Option<ImageHash>,
@@ -85,7 +90,7 @@ impl MemberIntermediary {
 ///
 /// Member payloads from the HTTP API, for example, don't have the guild
 /// ID.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct MemberDeserializer(Id<GuildMarker>);
 
 impl MemberDeserializer {
@@ -100,28 +105,28 @@ impl<'de> DeserializeSeed<'de> for MemberDeserializer {
     type Value = Member;
 
     fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+        struct MemberVisitor(Id<GuildMarker>);
+
+        impl<'de> Visitor<'de> for MemberVisitor {
+            type Value = Member;
+
+            fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
+                f.write_str("a map of member fields")
+            }
+
+            fn visit_map<M: MapAccess<'de>>(self, map: M) -> Result<Self::Value, M::Error> {
+                let deser = MapAccessDeserializer::new(map);
+                let member = MemberIntermediary::deserialize(deser)?;
+
+                Ok(member.into_member(self.0))
+            }
+        }
+
         deserializer.deserialize_map(MemberVisitor(self.0))
     }
 }
 
-struct MemberVisitor(Id<GuildMarker>);
-
-impl<'de> Visitor<'de> for MemberVisitor {
-    type Value = Member;
-
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("a map of member fields")
-    }
-
-    fn visit_map<M: MapAccess<'de>>(self, map: M) -> Result<Self::Value, M::Error> {
-        let deser = MapAccessDeserializer::new(map);
-        let member = MemberIntermediary::deserialize(deser)?;
-
-        Ok(member.into_member(self.0))
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct MemberListDeserializer(Id<GuildMarker>);
 
 impl MemberListDeserializer {
@@ -136,27 +141,27 @@ impl<'de> DeserializeSeed<'de> for MemberListDeserializer {
     type Value = Vec<Member>;
 
     fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-        deserializer.deserialize_any(MemberListVisitor(self.0))
-    }
-}
+        struct MemberListVisitor(Id<GuildMarker>);
 
-struct MemberListVisitor(Id<GuildMarker>);
+        impl<'de> Visitor<'de> for MemberListVisitor {
+            type Value = Vec<Member>;
 
-impl<'de> Visitor<'de> for MemberListVisitor {
-    type Value = Vec<Member>;
+            fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
+                f.write_str("a sequence of members")
+            }
 
-    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-        f.write_str("a sequence of members")
-    }
+            fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
+                let mut list = seq.size_hint().map_or_else(Vec::new, Vec::with_capacity);
 
-    fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
-        let mut list = seq.size_hint().map_or_else(Vec::new, Vec::with_capacity);
+                while let Some(member) = seq.next_element_seed(MemberDeserializer(self.0))? {
+                    list.push(member);
+                }
 
-        while let Some(member) = seq.next_element_seed(MemberDeserializer(self.0))? {
-            list.push(member);
+                Ok(list)
+            }
         }
 
-        Ok(list)
+        deserializer.deserialize_any(MemberListVisitor(self.0))
     }
 }
 
