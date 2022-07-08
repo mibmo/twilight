@@ -13,7 +13,7 @@ labels:
   - label: "c-cache"
     sync: true
     matcher:
-      files: "twilight-cache/**/*"
+      files: "twilight-cache-inmemory/**/*"
 
   - label: "c-embed-builder"
     sync: true
