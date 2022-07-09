@@ -90,7 +90,7 @@ impl MemberIntermediary {
 ///
 /// Member payloads from the HTTP API, for example, don't have the guild
 /// ID.
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemberDeserializer(Id<GuildMarker>);
 
 impl MemberDeserializer {
@@ -105,28 +105,28 @@ impl<'de> DeserializeSeed<'de> for MemberDeserializer {
     type Value = Member;
 
     fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-        struct MemberVisitor(Id<GuildMarker>);
-
-        impl<'de> Visitor<'de> for MemberVisitor {
-            type Value = Member;
-
-            fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-                f.write_str("a map of member fields")
-            }
-
-            fn visit_map<M: MapAccess<'de>>(self, map: M) -> Result<Self::Value, M::Error> {
-                let deser = MapAccessDeserializer::new(map);
-                let member = MemberIntermediary::deserialize(deser)?;
-
-                Ok(member.into_member(self.0))
-            }
-        }
-
         deserializer.deserialize_map(MemberVisitor(self.0))
     }
 }
 
-#[derive(Debug)]
+struct MemberVisitor(Id<GuildMarker>);
+
+impl<'de> Visitor<'de> for MemberVisitor {
+    type Value = Member;
+
+    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
+        f.write_str("a map of member fields")
+    }
+
+    fn visit_map<M: MapAccess<'de>>(self, map: M) -> Result<Self::Value, M::Error> {
+        let deser = MapAccessDeserializer::new(map);
+        let member = MemberIntermediary::deserialize(deser)?;
+
+        Ok(member.into_member(self.0))
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemberListDeserializer(Id<GuildMarker>);
 
 impl MemberListDeserializer {
@@ -141,27 +141,27 @@ impl<'de> DeserializeSeed<'de> for MemberListDeserializer {
     type Value = Vec<Member>;
 
     fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
-        struct MemberListVisitor(Id<GuildMarker>);
+        deserializer.deserialize_any(MemberListVisitor(self.0))
+    }
+}
 
-        impl<'de> Visitor<'de> for MemberListVisitor {
-            type Value = Vec<Member>;
+struct MemberListVisitor(Id<GuildMarker>);
 
-            fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
-                f.write_str("a sequence of members")
-            }
+impl<'de> Visitor<'de> for MemberListVisitor {
+    type Value = Vec<Member>;
 
-            fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
-                let mut list = seq.size_hint().map_or_else(Vec::new, Vec::with_capacity);
+    fn expecting(&self, f: &mut Formatter<'_>) -> FmtResult {
+        f.write_str("a sequence of members")
+    }
 
-                while let Some(member) = seq.next_element_seed(MemberDeserializer(self.0))? {
-                    list.push(member);
-                }
+    fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
+        let mut list = seq.size_hint().map_or_else(Vec::new, Vec::with_capacity);
 
-                Ok(list)
-            }
+        while let Some(member) = seq.next_element_seed(MemberDeserializer(self.0))? {
+            list.push(member);
         }
 
-        deserializer.deserialize_any(MemberListVisitor(self.0))
+        Ok(list)
     }
 }
 
